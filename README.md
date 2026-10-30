@@ -15,7 +15,7 @@
   <a href="https://fableinnovations.com">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/fable-logo-light.svg">
-      <img alt="Fable Innovations" src="docs/fable-logo-dark.svg" height="32">
+      <img alt="Fable Innovations" src="docs/fable-logo-dark.svg" height="72">
     </picture>
   </a>
 </p>

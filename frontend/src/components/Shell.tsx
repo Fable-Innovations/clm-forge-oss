@@ -124,7 +124,7 @@ export function Shell() {
         >
           by
           <img
-            src={resolved === "dark" ? "/brand/fable-logo-light.svg" : "/brand/fable-logo-dark.svg"}
+            src={resolved === "dark" ? "/brand/fable-wordmark-light.svg" : "/brand/fable-wordmark-dark.svg"}
             alt="Fable Innovations"
             className="h-6 w-auto"
           />
