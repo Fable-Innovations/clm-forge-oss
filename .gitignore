@@ -1,8 +1,6 @@
 # Everything Forge writes at runtime: database, settings, projects, packages, caches, logs, MLflow
 # (FORGE_DATA moves it elsewhere)
 output/
-# the pre-rename runtime folder, in case an older checkout left one behind
-data/
 
 # build and tool artifacts
 vendor/
