@@ -1,5 +1,14 @@
 # CLM Forge
 
+<a href="https://fableinnovations.com">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/fable-logo-light.svg">
+    <img alt="Fable Innovations" src="docs/fable-logo-dark.svg" height="40">
+  </picture>
+</a>
+
+Built and maintained by [Fable Innovations](https://fableinnovations.com).
+
 Link a repository (or describe a task in plain text). An AI agent looks for the place where a
 **CLM** fits best. A CLM is a Contrastive Language Model: a frozen encoder (picked per experiment; Forge
 recommends one) plus small trained projection heads (the reference head

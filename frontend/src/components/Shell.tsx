@@ -110,10 +110,25 @@ export function Shell() {
     <div className="h-full flex flex-col">
       <div aria-hidden className="field-sense" />
       <header className="glass relative h-13 shrink-0 flex items-center gap-4 px-4 border-b border-line-soft">
-        <NavLink to="/" className="flex items-center gap-2.5 mr-2 rounded-full">
+        <NavLink to="/" className="flex items-center gap-2.5 mr-2 rounded-full shrink-0">
           <Logo />
-          <span className="font-display text-[15px] font-medium tracking-[-0.02em]">CLM Forge</span>
+          <span className="font-display text-[15px] font-medium tracking-[-0.02em] whitespace-nowrap">CLM Forge</span>
         </NavLink>
+        {/* maker's mark: the logo variant that reads on the current theme (white on dark, navy on light) */}
+        <a
+          href="https://fableinnovations.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Built by Fable Innovations"
+          className="hidden xl:inline-flex shrink-0 items-center gap-1.5 -ml-3 mr-2 text-[11px] text-muted hover:text-ink-2 opacity-80 hover:opacity-100 transition-opacity"
+        >
+          by
+          <img
+            src={resolved === "dark" ? "/brand/fable-logo-light.svg" : "/brand/fable-logo-dark.svg"}
+            alt="Fable Innovations"
+            className="h-6 w-auto"
+          />
+        </a>
         <nav className="flex items-center gap-1">
           <NavLink to="/" end className={link}>
             <FolderGit2 size={14} /> Experiments
