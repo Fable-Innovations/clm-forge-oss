@@ -1,7 +1,7 @@
 """Locate / clone a repository, scan it, and find candidate CLM sites.
 
 Local paths are read in place and never written to. https git URLs are shallow-cloned into
-data/repos/<hash>. Everything here is deterministic (no LLM): it builds the digest that the
+output/repos/<hash>. Everything here is deterministic (no LLM): it builds the digest that the
 Ollama provider analyses and that seeds the Claude provider's exploration.
 """
 from __future__ import annotations

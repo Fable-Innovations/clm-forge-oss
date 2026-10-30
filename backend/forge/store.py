@@ -1,8 +1,8 @@
-"""SQLite persistence (data/forge.db): projects, events (seq per project), chat, the global model-job queue
+"""SQLite persistence (output/forge.db): projects, events (seq per project), chat, the global model-job queue
 (``model_jobs``, rules in ``forge.jobqueue``) and the autopilot's targets, schedules, runs and journal
 (rules in ``forge.autopilot``).
 
-Dataset rows live in data/projects/<pid>/dataset.jsonl (see curator / dataset helpers below).
+Dataset rows live in output/projects/<pid>/dataset.jsonl (see curator / dataset helpers below).
 One connection per call keeps this safe across the event loop and worker threads.
 """
 from __future__ import annotations

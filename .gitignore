@@ -1,13 +1,20 @@
+# Everything Forge writes at runtime: database, settings, projects, packages, caches, logs, MLflow
+# (FORGE_DATA moves it elsewhere)
+output/
+# the pre-rename runtime folder, in case an older checkout left one behind
 data/
+
+# build and tool artifacts
 vendor/
 .venv/
 node_modules/
 dist/
 __pycache__/
 *.pyc
-mlflow.db
-mlruns/
-.remember/
+*.tsbuildinfo
+.pytest_cache/
+.ruff_cache/
 .DS_Store
 .playwright-mcp/
+.remember/
 frontend/node_modules/

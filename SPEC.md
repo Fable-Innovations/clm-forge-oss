@@ -55,7 +55,7 @@ clm-forge/
       api.py               FastAPI app, REST + SSE, serves frontend/dist        [agent]
     tests/
   frontend/                Vite + React 18 + TypeScript                        [UI]
-  data/                    runtime (gitignored): forge.db, projects/<id>/..., cache/
+  output/                    runtime (gitignored): forge.db, projects/<id>/..., cache/
   vendor/clm-src/          reference clone (gitignored)
 ```
 
@@ -170,7 +170,7 @@ class RealRow(BaseModel):              # one real row in a labelling queue (forg
 A real row's **final disposition** is `labelled`, `excluded_by_agent`, or set aside by the user (`excluded`);
 `pending` (= undisposed) is `label_state == needs_label and not excluded`.
 
-Dataset file: `data/projects/<pid>/dataset.jsonl` (one `Example` per line) + `task.json` (`TaskSchema`).
+Dataset file: `output/projects/<pid>/dataset.jsonl` (one `Example` per line) + `task.json` (`TaskSchema`).
 The question asked of every row is the project's `TaskSchema` — one question per project.
 
 ## Labelling real rows (`forge/labelling.py`)
@@ -187,7 +187,7 @@ A label set is one directory with a queue:
   actor (user|teacher|agent|system), prev, next, undo_of?, via?}`; `undo` reverts the latest user `label`/`skip` not yet
   undone. `via` (user actions made through the API): `{origin, user_agent}` of the browser session (`web_guard`).
 
-Label set ids: `p:<pid>` = a project (`data/projects/<pid>/`); `h:<head_id>` = a head-set head directory
+Label set ids: `p:<pid>` = a project (`output/projects/<pid>/`); `h:<head_id>` = a head-set head directory
 `<root>/<head_id>/` (`task.json` + `real_rows.jsonl`) under a root listed in `Settings.labelset_roots` or the
 `FORGE_LABELSETS` environment variable (os.pathsep-separated).
 
@@ -470,7 +470,7 @@ migration reads it there).
 class Encoder:                                   # one per spec via get_encoder(spec); the spec is always the caller's
     spec: str; backend: str ("mlx"|"hf"|"llamacpp"); model_name: str; dim: int | None  # width known after first vector
     def embed(self, texts: list[str], on_progress: Callable[[int,int],None] | None = None,
-              use_cache: bool = True, on_status: Callable[[str,str],None] | None = None) -> np.ndarray  # [n,dim] float32 L2-normed; disk cache keyed by sha1(model|max_len|text) in data/cache/emb/
+              use_cache: bool = True, on_status: Callable[[str,str],None] | None = None) -> np.ndarray  # [n,dim] float32 L2-normed; disk cache keyed by sha1(model|max_len|text) in output/cache/emb/
     def embed_to_file(self, texts, path, on_progress=None, on_status=None) -> np.memmap  # streamed per batch to .npy
     def load(self, on_status=None) -> None; def loaded(self) -> bool; def unload(self) -> None
     # the model runs in a `python -m forge.embed_worker` subprocess under Settings.memory (see README "Memory");
@@ -522,7 +522,7 @@ def build_package(project_dir: Path, task, proposal_opportunity: Opportunity, re
 class PackageManifest(BaseModel): name: str; version: str; dir: str; zip: str; files: [{path, bytes, description}]; integration_md: str (relative path); created_at
 ```
 
-### Package contents (`data/projects/<pid>/package/clm_<name>/`)
+### Package contents (`output/projects/<pid>/package/clm_<name>/`)
 
 - `clm_<name>/` pip-installable (pyproject, hatchling), import `from clm_<name> import classify` (or
   `judge`/`score` by type) returning `{label, probabilities, confidence}`; ships `head.pt`, `task.json`;
@@ -561,7 +561,7 @@ class PackageManifest(BaseModel): name: str; version: str; dir: str; zip: str; f
   (no tool use: we build a repo digest — tree, README, candidate sites found by `repo.py` greps for
   LLM calls / classifiers / regex routers / if-elif ladders over strings — and ask for the structured
   Proposal). All return the same Pydantic models. Model ids come from each provider's live listing.
-- Tracing: MLflow to `data/mlflow.db` (opt-in, `FORGE_MLFLOW=1`).
+- Tracing: MLflow to `output/mlflow.db` (opt-in, `FORGE_MLFLOW=1`).
 
 ## Curation pipeline ([agent], `curator.py`)
 

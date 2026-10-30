@@ -9,7 +9,14 @@ that expects the refusal (``pytest.raises(MemoryAdmissionError)``) still sees it
 """
 from __future__ import annotations
 
+import os
+import tempfile
+
 import pytest
+
+# Before any ``forge`` import (``forge.paths`` reads it once): the suite writes its output root, caches included, to a
+# throwaway folder, never the repo's ``output/``.
+os.environ["FORGE_DATA"] = tempfile.mkdtemp(prefix="forge-tests-")
 
 
 @pytest.fixture(autouse=True)

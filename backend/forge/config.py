@@ -1,4 +1,4 @@
-"""Runtime settings, persisted as JSON in data/settings.json.
+"""Runtime settings, persisted as JSON in output/settings.json.
 
 Paths come from `forge.paths` (owned by the ML side); until it exists we fall back to the same
 layout so this module always imports cleanly.
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]  # the repo root
 try:  # pragma: no cover - depends on the ML side having landed
     from forge.paths import CACHE_DIR, DATA_DIR, project_dir  # type: ignore
 except Exception:  # noqa: BLE001
-    DATA_DIR = Path(os.environ.get("FORGE_DATA_DIR", ROOT / "data")).resolve()
+    DATA_DIR = Path(os.environ.get("FORGE_DATA_DIR", ROOT / "output")).resolve()
     CACHE_DIR = DATA_DIR / "cache"
 
     def project_dir(pid: str) -> Path:

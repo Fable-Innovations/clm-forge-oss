@@ -192,7 +192,7 @@ trained on until it has one. Labelling is an automatic stage; nothing waits for 
 - Labelled rows go straight into the experiment's `dataset.jsonl` with their label source; the Data
   tab shows it on every row, and editing a row's label there also makes it yours. Edits are refused
   while a stage is reading or writing the dataset (curating, labelling, selecting, training, evaluating).
-- Files: `data/projects/<id>/real_rows.jsonl` (current state) and `labelling_log.jsonl` (append-only
+- Files: `output/projects/<id>/real_rows.jsonl` (current state) and `labelling_log.jsonl` (append-only
   action log, used by undo). Old datasets are read as before; their rows get a label source on read.
 
 **Head-set label sets.** A head directory of a head set (`<root>/<head_id>/task.json` + `real_rows.jsonl`) is a
@@ -240,7 +240,7 @@ down why. Page: **Autopilot** (`/autopilot`). Contract: `SPEC.md` "Autopilot".
   label made in the labelling page is logged with the browser session it came from (`via`: origin, user agent).
   What a head set runs (its adapter command, folders, environment) comes only from the server-side presets file;
   a request that names one is refused, and the output folder must be one of the preset's `<base>-<name>` folders.
-- **One server per data directory.** `forge-api` holds `data/forge-server.lock` (its pid and port) and refuses
+- **One server per data directory.** `forge-api` holds `output/forge-server.lock` (its pid and port) and refuses
   to start while another server holds it, saying which (a second server would re-queue the first one's live runs
   and run them twice).
 - **Running without a terminal (launchd).** The schedule only fires while a server runs. To keep one running at
@@ -303,12 +303,12 @@ curl -X PUT http://127.0.0.1:8765/api/autopilot/targets/support-ticket-heads/sch
 ### Head-set presets
 
 A head set is registered on the server, never through the API: Forge reads its presets from a JSON file,
-`$FORGE_HEADSET_PRESETS` if set, else `<data dir>/headset_presets.json` (`data/headset_presets.json` by default).
+`$FORGE_HEADSET_PRESETS` if set, else `<data dir>/headset_presets.json` (`output/headset_presets.json` by default).
 Without the file there are no head-set presets and only project targets can be created. Start from
 `backend/headset_presets.example.json` (a hypothetical support-ticket head set):
 
 ```bash
-cp backend/headset_presets.example.json data/headset_presets.json   # then edit the paths and the adapter command
+mkdir -p output && cp backend/headset_presets.example.json output/headset_presets.json   # then edit the paths and the adapter command
 ```
 
 Each preset names the adapter command (`adapter`, run in `cwd` with `env` added), the folders it reads and writes
@@ -358,7 +358,7 @@ everything else runs on fakes. `npm test` runs the component
 tests (vitest + jsdom). Their dev dependencies are not in `package.json` yet; until they are, install
 them without saving: `npm i --no-save vitest@5 jsdom@30 @testing-library/react@16 @testing-library/dom@10`.
 
-Runtime data lives in `data/`: `forge.db`, `settings.json`, `projects/<id>/` (dataset.jsonl,
+Everything Forge writes lives in `output/` (gitignored; `FORGE_DATA` moves it): `forge.db`, `settings.json`, `projects/<id>/` (dataset.jsonl,
 task.json, best_head.pt, eval_report.json, package/) and `repos/` (shallow clones). Set `FORGE_DATA`
 to relocate it and `FORGE_PORT` to change the port. A project that was mid-stage when the server
 restarted has that stage queued again on startup (no retry needed). An experiment waiting at the
@@ -395,7 +395,7 @@ technical or account.
 |---|---|---|
 | `claude-subscription` (default) | `claude-agent-sdk` driving your local `claude` CLI login | `ANTHROPIC_API_KEY` is blanked in the subprocess, so no API key is billed. Analysis reads code only through the repo-confined `list_files`/`grep`/`read_file` tools (in-process MCP); Claude Code's built-in Read/Grep/Glob are off because they accept absolute paths, and a PreToolUse hook denies any other tool. Structured output uses `output_format: json_schema`. |
 | `codex-subscription` | your local `codex` CLI's ChatGPT login (`codex exec --json`), no API key | `OPENAI_API_KEY`/`CODEX_API_KEY` are removed from the subprocess env. Codex's read-only sandbox doesn't restrict reads, so its shell and every other outward-reaching built-in are switched off and it reads code only through `forge.llm.repo_mcp` (the same repo-confined `list_files`/`grep`/`read_file`), from an empty temp dir with `--ignore-user-config`/`--ignore-rules`/`--ephemeral`. Structured output via `--output-schema`. Models from `codex app-server`'s `model/list`. |
-| `openai` | OpenAI Chat Completions with an API key (Settings, or `OPENAI_API_KEY`); optional base URL for any OpenAI-compatible server | Analysis is a real tool loop over read-only `list_files` / `grep` / `read_file`, run in Python and confined to the repo by `repo.safe_path`. Structured output uses strict `json_schema`, falling back to JSON mode. The key is write-only over the API and `data/settings.json` is chmod 600. |
+| `openai` | OpenAI Chat Completions with an API key (Settings, or `OPENAI_API_KEY`); optional base URL for any OpenAI-compatible server | Analysis is a real tool loop over read-only `list_files` / `grep` / `read_file`, run in Python and confined to the repo by `repo.safe_path`. Structured output uses strict `json_schema`, falling back to JSON mode. The key is write-only over the API and `output/settings.json` is chmod 600. |
 | `ollama` | `http://127.0.0.1:11434`, `format=<json schema>`, thinking off | No tool use; it analyses the repo digest instead. `qwen3:8b` works but is weaker at large nested edits (for example, chat-driven proposal revisions). |
 
 Model lists are never hard-coded: `GET /api/providers` asks each provider what it offers right now
@@ -404,7 +404,7 @@ Model lists are never hard-coded: `GET /api/providers` asks each provider what i
 model per experiment, or set a default in Settings.
 
 Tracing is opt-in: with `FORGE_MLFLOW=1` and `uv sync --extra trace`, provider calls are recorded as
-MLflow spans in `data/mlflow.db`. View them with `uv run mlflow ui --port 5001` (port 5000 collides
+MLflow spans in `output/mlflow.db`. View them with `uv run mlflow ui --backend-store-uri sqlite:///../output/mlflow.db --port 5001` (from `backend/`) (port 5000 collides
 with the macOS AirPlay Receiver).
 
 ## Encoder notes
@@ -419,7 +419,7 @@ with the macOS AirPlay Receiver).
   The embedding is the last token's final hidden state, L2-normalised, with a 2048-token tail; embeddings are
   disk-cached per model.
 - **Memory.** Base models never load into the server process. Each `Encoder` runs its model in an
-  embedding worker (`python -m forge.embed_worker`, log in `data/cache/embed-worker.log`) and every
+  embedding worker (`python -m forge.embed_worker`, log in `output/cache/embed-worker.log`) and every
   layer of the budget lives in `forge/memory.py`:
   - *One model per machine.* The worker holds an `fcntl` lock on `~/.cache/clm-forge/model-job.lock`
     while its model is loaded, so a second Forge server or test run waits (log: "waiting for model
@@ -442,7 +442,7 @@ with the macOS AirPlay Receiver).
   - *Streaming.* Vectors are cached per batch; head training reads the table from a memory-mapped
     `embeddings.npy` (deleted afterwards).
 
-  Settings (`data/settings.json` → `memory`; `GET /api/settings` shows the resolved numbers as
+  Settings (`output/settings.json` → `memory`; `GET /api/settings` shows the resolved numbers as
   `memory_resolved`): `budget_gb` (default 60% of RAM: 28.8 GB on 48 GB), `reserve_gb` (default
   max(4 GB, 15%): 7.2 GB), `buckets` (32…2048), `max_rows` 16, `admission_wait_s` 300,
   `lock_wait_s` 3600, `idle_unload_s` 600, `llama_parallel` 2, `llama_kv_type` `q8_0`. A llama.cpp

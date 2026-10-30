@@ -2,7 +2,7 @@
 
 One queue per directory:
 
-- a project's queue lives in ``data/projects/<pid>/`` beside ``dataset.jsonl``; a row that becomes
+- a project's queue lives in ``output/projects/<pid>/`` beside ``dataset.jsonl``; a row that becomes
   ``labelled`` is upserted into that dataset (with its ``label_source``) and a row that goes back to
   ``needs_label`` is removed from it, so the dataset never holds an unlabelled row;
 - a head directory (``<root>/<head_id>/`` with ``task.json``, written by a head-set adapter) keeps its queue in

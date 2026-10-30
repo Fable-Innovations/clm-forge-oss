@@ -38,7 +38,7 @@ There is no process-wide or app-wide default spec.
 The embedding width depends on the base model (4096 for Qwen3-8B); ``Encoder.dim`` starts at the registry's
 ``hidden`` for a registered spec and is confirmed by the first vector produced (a cache hit counts) or the worker.
 
-Cache: one SQLite file ``data/cache/emb/emb.sqlite`` mapping ``sha1(model|max_len|text)`` to the
+Cache: one SQLite file ``output/cache/emb/emb.sqlite`` mapping ``sha1(model|max_len|text)`` to the
 raw float32 bytes (llama.cpp with a quantized KV cache adds ``|kv=<type>`` so vectors computed with
 different KV precision never mix). Fresh vectors are written per batch, as they arrive.
 ``embed_to_file`` streams the result into a ``.npy`` memmap instead of building it in RAM.

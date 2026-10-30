@@ -54,6 +54,9 @@ def tracing_enabled() -> bool:
 
             from forge import config
             mlflow.set_tracking_uri(f"sqlite:///{config.DATA_DIR / 'mlflow.db'}")
+            # artifacts beside the database, not in ./mlruns of whatever folder the server started in
+            if mlflow.get_experiment_by_name("clm-forge") is None:
+                mlflow.create_experiment("clm-forge", artifact_location=(config.DATA_DIR / "mlruns").as_uri())
             mlflow.set_experiment("clm-forge")
             _mlflow = mlflow
         except Exception:  # noqa: BLE001

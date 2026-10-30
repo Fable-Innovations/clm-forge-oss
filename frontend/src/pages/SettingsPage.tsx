@@ -70,7 +70,7 @@ export function SettingsPage() {
                       ? "A key is saved and only sent to the URL it was entered for. Type a new one to replace it."
                       : data?.openai_api_key_env
                         ? "Using OPENAI_API_KEY from the server's environment."
-                        : "Stored in data/settings.json (readable only by you) and never sent back to the browser."
+                        : "Stored in output/settings.json (readable only by you) and never sent back to the browser."
                   }
                 >
                   <div className="flex gap-2">
