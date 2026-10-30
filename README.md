@@ -1,23 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/clm-forge-logo-dark-bg.svg">
-    <img alt="CLM Forge" src="docs/clm-forge-logo-light-bg.svg" height="112">
-  </picture>
-</p>
-
-<h1 align="center">CLM Forge</h1>
-
-<p align="center">
-  Find the LLM call in your codebase that a small, fast classifier could replace, then train, test and ship it.
-</p>
-
-<p align="center">
-  <a href="https://fableinnovations.com">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/fable-logo-light.svg">
-      <img alt="Fable Innovations" src="docs/fable-logo-dark.svg" height="72">
-    </picture>
-  </a>
+  <img alt="CLM Forge: replace the LLM calls that make decisions in your code with fast, fine-tuned CLM heads. By Fable Innovations." src="docs/banner.png" width="100%">
 </p>
 
 ## What it does
