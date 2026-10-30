@@ -1,0 +1,37 @@
+{
+  "presets": [
+    {
+      "key": "support-ticket-heads",
+      "name": "Support ticket heads",
+      "description": "Routing, priority and escalation heads for a support desk, trained on exported ticket decisions and real-shaped synthetic rows.",
+      "adapter": ["uv", "run", "python", "-m", "ticket_heads.autopilot"],
+      "cwd": "/opt/ticket-heads",
+      "env": {"TICKET_HEADS_LOG_LEVEL": "info"},
+      "env_passthrough": ["TICKET_EXPORT_TOKEN_CMD"],
+      "dataset_root": "/opt/ticket-heads/datasets",
+      "output_base": "/opt/ticket-heads/models/support-ticket-heads",
+      "protected_roots": ["/opt/ticket-heads/models/support-ticket-heads"],
+      "protected_globs": ["*/rows.jsonl", "*/val_redrawn.jsonl", "*/val_split.json", "*/_val_archive/*"],
+      "protected_files": [],
+      "sources": [
+        {
+          "kind": "ticket_export",
+          "label": "Ticket export",
+          "enabled_by_default": true,
+          "settings": {"stage": {"values": ["staging", "prod"], "default": "prod", "multiple": false}}
+        },
+        {
+          "kind": "agent_feedback",
+          "label": "Agent feedback",
+          "enabled_by_default": false,
+          "settings": {"regions": {"values": ["eu", "us"], "default": ["eu", "us"], "multiple": true}}
+        }
+      ],
+      "fixed_heads": null,
+      "encoder_backends": ["mlx"],
+      "adapter_config": {"epochs": 30},
+      "adapter_config_keys": ["epochs", "real_cap"],
+      "recommended_encoder": null
+    }
+  ]
+}

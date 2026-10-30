@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Forge as a per-user launchd agent (forge/service.py renders this; `forge service install` writes it to
+     ~/Library/LaunchAgents and loads it). The server takes <data>/forge-server.lock, so it refuses to start while
+     another Forge server (a terminal one) serves the same data folder; launchd retries every $throttle s. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>$label</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$python</string>
+    <string>-m</string>
+    <string>forge.api</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>$backend</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+$environment
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>$throttle</integer>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>StandardOutPath</key>
+  <string>$log</string>
+  <key>StandardErrorPath</key>
+  <string>$log</string>
+</dict>
+</plist>

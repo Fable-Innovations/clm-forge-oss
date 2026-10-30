@@ -1,0 +1,17 @@
+CLM Forge
+Copyright 2026 Fable Innovations
+
+This product includes software developed at Fable Innovations
+(https://fableinnovations.com), licensed under the Apache License 2.0.
+
+This product includes code adapted from the CLM project
+(https://github.com/Contrastive-LM/CLM), Copyright the CLM authors,
+licensed under the Apache License 2.0:
+  - backend/forge/clm_core/heads.py   (projection-head architecture and checkpoint loading)
+  - backend/forge/clm_core/schema.py  (System One question/answer schema)
+  - backend/forge/runtime_template/pkg/ (packaged runtime; see its own NOTICE)
+
+Model weights are not distributed with this repository. At runtime CLM Forge
+downloads, from Hugging Face, models released by their authors under the
+Apache License 2.0: Qwen3-8B (Qwen), CLM-v0.1-8B (Contrastive-LM) and
+Winnow-12B (EldanRing).

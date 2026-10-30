@@ -1,0 +1,47 @@
+# Evaluation report: `{{ pkg }}`
+
+Question ({{ task.type }}): **{{ task.instructions }}** — test split, n = {{ report.n_test }}.
+
+## Gate: {{ "PASSED" if report.gate_passed else "FAILED" }}
+
+{% for r in report.gate_reasons %}- {{ r }}
+{% endfor %}
+## Models
+
+| model | accuracy | macro-F1 | n | note |
+|---|---|---|---|---|
+{% for m in report.models %}| {{ m.name }} | {{ "%.3f" | format(m.accuracy) }} | {{ "%.3f" | format(m.macro_f1) }} | {{ m.n }} | {{ m.note or "" }} |
+{% endfor %}
+## Per label (fine-tuned)
+
+| label | precision | recall | F1 | support |
+|---|---|---|---|---|
+{% for l in report.per_label %}| `{{ l.label }}` | {{ "%.3f" | format(l.precision) }} | {{ "%.3f" | format(l.recall) }} | {{ "%.3f" | format(l.f1) }} | {{ l.support }} |
+{% endfor %}
+## Confusion matrix (rows = gold, columns = predicted)
+
+| gold \ pred | {% for l in report.confusion.labels %}`{{ l }}` | {% endfor %}
+|---|{% for l in report.confusion.labels %}---|{% endfor %}
+{% for row in report.confusion.matrix %}| `{{ report.confusion.labels[loop.index0] }}` | {% for v in row %}{{ v }} | {% endfor %}
+{% endfor %}
+## Calibration
+
+Expected calibration error (top-probability, 10 bins): **{{ "%.3f" | format(report.ece) }}**
+
+| confidence bin | mean confidence | accuracy | count |
+|---|---|---|---|
+{% for b in report.reliability %}{% if b.count %}| {{ "%.1f" | format(b.bin_lo) }}–{{ "%.1f" | format(b.bin_hi) }} | {{ "%.3f" | format(b.confidence) }} | {{ "%.3f" | format(b.accuracy) }} | {{ b.count }} |
+{% endif %}{% endfor %}
+## Latency (build machine)
+
+| | p50 ms | p95 ms |
+|---|---|---|
+| encoder, uncached | {{ "%.1f" | format(report.latency.embed_ms_p50) }} | {{ "%.1f" | format(report.latency.embed_ms_p95) }} |
+| head | {{ "%.2f" | format(report.latency.head_ms_p50) }} | {{ "%.2f" | format(report.latency.head_ms_p95) }} |
+| warm (cached embedding + head) | {{ "%.2f" | format(report.latency.warm_cached_ms_p50) }} | |
+
+## Worst errors
+
+{% for e in report.errors %}- `{{ e.id }}` gold `{{ e.gold }}`, predicted `{{ e.pred }}` (p(gold) = {{ "%.2f" | format(e.probabilities.get(e.gold, 0)) }}): {{ e.state[:240] | replace("\n", " ") }}
+{% else %}No errors on the test split.
+{% endfor %}

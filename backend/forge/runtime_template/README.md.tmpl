@@ -1,0 +1,106 @@
+# {{ pkg }}
+
+A CLM (Contrastive Language Model) classifier trained with CLM Forge. It answers one question:
+
+> **{{ instructions }}** (`{{ question_id }}`, type `{{ qtype }}`)
+
+| label | meaning |
+|---|---|
+{% for k, v in options %}| `{{ k }}` | {{ v | replace("|", "\\|") | replace("\n", " ") }} |
+{% endfor %}
+
+The state you pass in: {{ state_description }}
+
+## Install
+
+```bash
+pip install dist/{{ wheel_name }}            # Apple Silicon: pulls mlx-lm for the default encoder
+pip install "dist/{{ wheel_name }}[serve]"   # + the HTTP server
+```
+
+{% if encoder_backend == "llamacpp" %}This head was trained on **{{ base_model_name }}** (`{{ encoder_model }}`), served by llama.cpp.
+Start the embedding server before the first call (see [Encoder](#encoder-must-match-training)).
+{% else %}The first call loads the {{ base_model_name }} encoder (`{{ encoder_model }}`, {{ "%.1f" | format(weights_gb) }} GB of weights,
+downloaded to the Hugging Face cache on first use unless already cached; afterwards about a second to load).
+Resident memory is about the weights plus MLX's free-buffer cache, which the package caps at
+{{ cache_limit_mb }} MB (`CLM_MLX_CACHE_LIMIT_MB`).{% endif %}
+
+## Use
+
+```python
+from {{ pkg }} import {{ api }}
+
+r = {{ api }}({{ state_example | tojson }})
+# {"label": "...", "probabilities": {...}, "confidence": 0.93, "source": "clm", "latency_ms": ...}
+
+# keep your existing logic as the fallback for low-confidence cases
+r = {{ api }}(state, fallback=existing_function)          # threshold defaults to {{ "%.2f" | format(threshold) }}
+r = {{ api }}(state, threshold=0.7, fallback=existing_function)
+```
+
+`confidence` is the System One confidence: top probability minus the mean of the others (0..1).
+
+## Encoder (must match training)
+
+{% if encoder_backend == "llamacpp" %}The head scores **{{ base_model_name }} last-token embeddings** from llama.cpp (`--pooling last`):
+tokens without special tokens, tail-truncated to {{ max_len - 1 }} tokens, final hidden state after
+the final norm, last token, float32, L2-normalised. It was trained on `{{ encoder_model }}`; run
+exactly that GGUF.
+
+```bash
+llama-server -m {{ gguf_file }} --embeddings --pooling last -ub {{ max_len }} -c {{ max_len * 4 }} -np 4 --port 8090
+CLM_LLAMA_URL=http://127.0.0.1:8090 python app.py      # CLM_ENCODER defaults to llamacpp for this package
+```
+
+| `CLM_ENCODER` | where | settings |
+|---|---|---|
+| `llamacpp` (default) | a `llama-server` running the training GGUF | `CLM_LLAMA_URL` (default `http://127.0.0.1:8090`) |
+{% else %}The head scores **{{ base_model_name }} last-token embeddings** ({{ encoder_dim }}-d): tokens without
+special tokens, tail-truncated to {{ max_len - 1 }} tokens, final hidden state after the final norm,
+last token, float32, L2-normalised. It was trained on the MLX build `{{ encoder_model }}`, which the
+package loads by default with no environment variables. Keep that encoder in production, or validate
+another build on `examples/golden.jsonl` (or retrain) before switching.
+
+| `CLM_ENCODER` | where | settings |
+|---|---|---|
+| `mlx` (default) | in-process, Apple Silicon | `CLM_MLX_MODEL` (default `{{ encoder_model }}`, a repo id or local directory), `CLM_MLX_CACHE_LIMIT_MB` (default {{ cache_limit_mb }}) |
+| `openai` | any OpenAI-compatible `/v1/embeddings` server serving the same base model, e.g. vLLM on a GPU box | `CLM_EMBED_URL`, `CLM_EMBED_MODEL` (the served name; required), `CLM_EMBED_API_KEY`, `CLM_EMBED_TRUNCATE=0` if the server rejects `truncate_prompt_tokens` |
+
+GPU box example (serve the unquantised original of `{{ encoder_model }}` with last-token pooling):
+
+```bash
+vllm serve <original of {{ base_model_name }}> --runner pooling --served-model-name encoder --max-model-len {{ max_len }}
+CLM_ENCODER=openai CLM_EMBED_URL=http://gpu-box:8000/v1/embeddings CLM_EMBED_MODEL=encoder python app.py
+```
+{% endif %}
+## HTTP server
+
+```bash
+{{ dist }}-serve --port 8700 --warm
+curl -s localhost:8700/v1/systemone -H 'content-type: application/json' \
+  -d '{"state": "<the state text>"}'
+```
+
+`POST /v1/systemone` speaks the System One wire format (`{state, questions?}` →
+`{model, answers, usage}`; `questions` defaults to this package's question). `POST /v1/predict`
+returns the same dict as `{{ api }}()`.
+
+## Quality (test split, n={{ n_test }})
+
+| model | accuracy | macro-F1 |
+|---|---|---|
+{% for m in models %}| {{ m.name }} | {{ "%.3f" | format(m.accuracy) }} | {{ "%.3f" | format(m.macro_f1) }} |
+{% endfor %}
+
+Latency on the build machine: embed p50 {{ "%.0f" | format(latency.embed_ms_p50) }} ms, head p50
+{{ "%.2f" | format(latency.head_ms_p50) }} ms. Full report: `EVAL_REPORT.md`.
+
+## Files
+
+- `src/{{ pkg }}/head.pt` — CLM checkpoint (state/action heads, logit scale, cfg); loaded with NumPy, no torch needed
+- `src/{{ pkg }}/task.json` — the question, option texts, labels, fallback threshold, encoder recipe
+- `examples/golden.jsonl` — test-split rows with gold labels and this model's predictions
+
+## License
+
+Apache-2.0. Contains code adapted from [CLM](https://github.com/Contrastive-LM/CLM) — see `NOTICE`.

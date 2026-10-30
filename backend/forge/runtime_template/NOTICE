@@ -1,0 +1,6 @@
+This package contains code adapted from the CLM project
+(https://github.com/Contrastive-LM/CLM), licensed under the Apache License 2.0:
+  - _head.py   (projection-head architecture, ported to NumPy)
+  - _schema.py (System One question/answer schema, verbatim)
+The reference head CLM_v0.1-8B (https://huggingface.co/Contrastive-LM/CLM-v0.1-8B) was used as
+the warm start for head.pt. See LICENSE for the full license text.

@@ -1,0 +1,33 @@
+"""{{ pkg }} — a CLM (Contrastive Language Model) head fine-tuned with CLM Forge.
+
+Question ({{ qtype }}): {{ instructions_doc }}
+Labels: {{ labels_doc }}
+
+    from {{ pkg }} import {{ api }}
+    r = {{ api }}(state)          # {"label", "probabilities", "confidence", "source"}
+    r = {{ api }}(state, fallback=existing_code_path)   # low confidence -> your original path
+
+See README.md for encoder configuration (CLM_ENCODER=mlx|openai|llamacpp).
+"""
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
+from .model import Model, get_model, predict, task
+
+__version__ = "{{ version }}"
+
+
+def {{ api }}(state: Any, *, threshold: float | None = None, fallback: Callable[[Any], Any] | None = None) -> dict:
+    """{{ instructions_doc }}
+
+    Returns ``{"label", "probabilities", "confidence", "source"}``. ``label`` is one of
+    {{ labels_doc }}. When ``fallback`` is given, states whose confidence is below
+    ``threshold`` (default {{ "%.2f" | format(threshold) }}, chosen on the test split) are answered by
+    ``fallback(state)`` and ``source`` is ``"fallback"``.
+    """
+    return predict(state, threshold=threshold, fallback=fallback)
+
+
+__all__ = ["{{ api }}", "predict", "task", "get_model", "Model", "__version__"]

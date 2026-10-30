@@ -1,0 +1,13 @@
+data/
+vendor/
+.venv/
+node_modules/
+dist/
+__pycache__/
+*.pyc
+mlflow.db
+mlruns/
+.remember/
+.DS_Store
+.playwright-mcp/
+frontend/node_modules/

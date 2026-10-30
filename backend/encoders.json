@@ -1,0 +1,96 @@
+{
+  "about": "The Forge encoder registry: every frozen base model a project or an autopilot target may train heads on. One table, read as a file by forge/encoders.py (and by any head-set adapter that pins encoders from it). key = what settings, projects and targets store; revision = the Hugging Face commit the HF cache must hold; hidden = embedding width; approx_gb = the largest embedding-worker peak measured on this machine (approx_gb_source says where), null when never measured.",
+  "encoders": [
+    {
+      "key": "qwen3-4b",
+      "name": "Qwen3-4B (MLX 4-bit)",
+      "backend": "mlx",
+      "repo": "mlx-community/Qwen3-4B-4bit",
+      "file": null,
+      "revision": "4dcb3d101c2a062e5c1d4bb173588c54ea6c4d25",
+      "hidden": 2560,
+      "quant": "4-bit",
+      "approx_gb": 4.21,
+      "approx_gb_source": "max latency.encoder_peak_bytes over eval reports on a 48 GB Apple Silicon Mac",
+      "note": "2560-d; heads train from scratch. The default for head sets that need the full width."
+    },
+    {
+      "key": "qwen3-0.6b",
+      "name": "Qwen3-0.6B (MLX 4-bit)",
+      "backend": "mlx",
+      "repo": "mlx-community/Qwen3-0.6B-4bit",
+      "file": null,
+      "revision": "73e3e38d981303bc594367cd910ea6eb48349da8",
+      "hidden": 1024,
+      "quant": "4-bit",
+      "approx_gb": 2.01,
+      "approx_gb_source": "max latency.encoder_peak_bytes over eval reports on a 48 GB Apple Silicon Mac",
+      "note": "1024-d; heads train from scratch."
+    },
+    {
+      "key": "qwen3-0.6b-8bit",
+      "name": "Qwen3-0.6B (MLX 8-bit)",
+      "backend": "mlx",
+      "repo": "mlx-community/Qwen3-0.6B-8bit",
+      "file": null,
+      "revision": "11de96878523501bcaa86104e3c186de07ff9068",
+      "hidden": 1024,
+      "quant": "8-bit",
+      "approx_gb": 2.34,
+      "approx_gb_source": "max latency.encoder_peak_bytes over eval reports on a 48 GB Apple Silicon Mac",
+      "note": "1024-d; heads train from scratch."
+    },
+    {
+      "key": "qwen3-0.6b-bf16",
+      "name": "Qwen3-0.6B (MLX bf16)",
+      "backend": "mlx",
+      "repo": "mlx-community/Qwen3-0.6B-bf16",
+      "file": null,
+      "revision": "42096995f6402fde107068cf530136fe64b604f8",
+      "hidden": 1024,
+      "quant": "bf16",
+      "approx_gb": 2.97,
+      "approx_gb_source": "max latency.encoder_peak_bytes over eval reports on a 48 GB Apple Silicon Mac",
+      "note": "1024-d; heads train from scratch."
+    },
+    {
+      "key": "qwen3-4b-gguf-q4km",
+      "name": "Qwen3-4B (GGUF Q4_K_M)",
+      "backend": "llamacpp",
+      "repo": "Qwen/Qwen3-4B-GGUF",
+      "file": "Qwen3-4B-Q4_K_M.gguf",
+      "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+      "hidden": 2560,
+      "quant": "Q4_K_M",
+      "approx_gb": 4.09,
+      "approx_gb_source": "max latency.encoder_peak_bytes over Forge project eval reports on a 48 GB Apple Silicon Mac",
+      "note": "2560-d; heads train from scratch. The build to ship heads on: llama.cpp runs on macOS Metal and Windows/Linux CPU alike."
+    },
+    {
+      "key": "qwen3-8b-mlx-4bit",
+      "name": "Qwen3-8B",
+      "backend": "mlx",
+      "repo": "mlx-community/Qwen3-8B-4bit",
+      "file": null,
+      "revision": "545dc4251c05440727734bcd94334791f6ab0192",
+      "hidden": 4096,
+      "quant": "4-bit",
+      "approx_gb": 6.36,
+      "approx_gb_source": "max embedding-worker peak measured on a 48 GB Apple Silicon Mac",
+      "note": "MLX 4-bit; warm-starts from the reference CLM head (trained on this encoder)."
+    },
+    {
+      "key": "winnow-12b-gguf-q8",
+      "name": "Winnow-12B",
+      "backend": "llamacpp",
+      "repo": "EldanRing/Winnow-12B",
+      "file": "gguf/Winnow-12B-Q8_0.gguf",
+      "revision": "859a2cb24921d8b579badce6caa469f9290f3bc1",
+      "hidden": 3840,
+      "quant": "Q8_0",
+      "approx_gb": null,
+      "approx_gb_source": null,
+      "note": "Gemma 4 12B fine-tuned for typed decisions; GGUF Q8 via llama.cpp."
+    }
+  ]
+}

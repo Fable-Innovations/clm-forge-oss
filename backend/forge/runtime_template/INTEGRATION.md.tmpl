@@ -1,0 +1,180 @@
+# Integrate `{{ pkg }}`: {{ opp.title }}
+
+## Prompt for your coding agent
+
+```text
+Integrate the locally trained CLM classifier `{{ pkg }}` into this repository, following
+INTEGRATION.md (shipped next to this prompt) exactly.
+
+Goal: answer "{{ task.instructions }}" with `{{ pkg }}.{{ api }}()` instead of the current
+approach ({{ opp.current_approach | replace("\n", " ") }}), keeping the current code path as the
+fallback for low-confidence cases and behind a feature flag that defaults to OFF.
+
+Steps:
+1. Install the wheel `{{ wheel_name }}` (from this package's dist/) as a dependency.
+2. At the call site(s){% if files %}: {% for f in files %}{{ f.path }}{% if f.start_line %}:{{ f.start_line }}{% if f.end_line %}-{{ f.end_line }}{% endif %}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}, add the
+   flagged branch from "Call-site change" below. Build the state text as described in
+   "What the model sees". Map labels ({{ labels | join(", ") }}) onto the existing return values.
+3. Low-confidence results (confidence < {{ "%.2f" | format(threshold) }}, env-configurable) must go
+   through the existing code path unchanged.
+4. Add the tests from "Tests to add", including the golden-example test over
+   examples/golden.jsonl.
+5. Do not delete the existing implementation; it is the fallback and the rollback path.
+6. Run the test suite and report results, plus the flag name and how to turn it on.
+```
+
+## Goal
+
+{{ opp.rationale }}
+
+- **Question** ({{ task.type }}, id `{{ task.question_id }}`): {{ task.instructions }}
+- **Today**: {{ opp.current_approach }}
+- **Expected benefits**: {% for b in opp.expected_benefits %}{{ b }}{% if not loop.last %}; {% endif %}{% else %}lower latency, no per-call API cost, deterministic outputs{% endfor %}
+
+{% if opp.integration_sketch %}Integration sketch from the analysis: {{ opp.integration_sketch }}
+{% endif %}
+## Where to change
+
+{% if files %}| file | lines | notes |
+|---|---|---|
+{% for f in files %}| `{{ f.path }}` | {% if f.start_line %}{{ f.start_line }}{% if f.end_line %}–{{ f.end_line }}{% endif %}{% else %}—{% endif %} | {% if loop.first %}primary call site{% else %}related{% endif %} |
+{% endfor %}
+{% for f in files %}{% if f.snippet %}
+`{{ f.path }}`{% if f.start_line %} (line {{ f.start_line }}){% endif %}, current code:
+
+```{{ f.lang }}
+{{ f.snippet }}
+```
+{% endif %}{% endfor %}{% else %}The analysis did not pin down specific files. Search for the code that currently answers
+"{{ task.instructions }}" and apply the change there.
+{% endif %}
+## What the model sees
+
+- **State** (the `state` argument): {{ task.state_description }}
+- Pass the state only; the package appends the question itself. Example state:
+
+```text
+{{ task.state_example }}
+```
+
+- **Labels** returned in `label`:
+
+| label | meaning |
+|---|---|
+{% for k, v in options %}| `{{ k }}` | {{ v | replace("|", "\\|") | replace("\n", " ") }} |
+{% endfor %}
+## Install
+
+```bash
+pip install path/to/{{ pkg }}/dist/{{ wheel_name }}        # or vendor the wheel into the repo
+pip install "path/to/{{ pkg }}/dist/{{ wheel_name }}[serve]"   # if you need the HTTP server
+```
+
+{% if encoder_backend == "llamacpp" %}- The head was trained on {{ base_model_name }} (`{{ encoder_model }}`) via llama.cpp. Run
+  `llama-server -m {{ gguf_file }} --embeddings --pooling last -ub {{ max_len }} -c {{ max_len * 4 }} -np 4 --port 8090`
+  as a sidecar service and set `CLM_LLAMA_URL` if it is not on `127.0.0.1:8090`. Use that exact GGUF.
+{% else %}- Apple Silicon: the default encoder (`CLM_ENCODER=mlx`) runs {{ base_model_name }} (`{{ encoder_model }}`,
+  {{ encoder_dim }}-d embeddings) in-process with no environment variables: {{ "%.1f" | format(weights_gb) }} GB of weights
+  (downloaded on first use unless cached; pin the revision in `task.json` -> `encoder.revision`),
+  resident memory about the weights plus the MLX free-buffer cache, capped at {{ cache_limit_mb }} MB
+  (`CLM_MLX_CACHE_LIMIT_MB`). Load about a second once cached. Keep one resident model per process.
+- Elsewhere: serve the same base model behind an OpenAI-compatible embeddings server with last-token
+  pooling and set `CLM_ENCODER=openai CLM_EMBED_URL=http://<host>:<port>/v1/embeddings CLM_EMBED_MODEL=<served name>`.
+  The head was trained on `{{ encoder_model }}`; validate with the golden test before relying on another build.{% endif %}
+
+## Call-site change
+{% if python %}
+```python
+import os
+
+from {{ pkg }} import {{ api }}
+
+USE_{{ flag }} = os.getenv("USE_{{ flag }}", "0") == "1"
+{{ flag }}_THRESHOLD = float(os.getenv("{{ flag }}_THRESHOLD", "{{ "%.2f" | format(threshold) }}"))
+
+
+def {{ task.question_id }}_for(...):              # the existing function at the call site
+    if USE_{{ flag }}:
+        state = ...                            # {{ task.state_description }}
+        r = {{ api }}(state, threshold={{ flag }}_THRESHOLD,
+                 fallback=lambda _state: existing_{{ task.question_id }}(...))   # unchanged old path
+        return r["label"]                      # one of: {{ labels | join(", ") }}
+    return existing_{{ task.question_id }}(...)
+```
+
+`r["source"]` is `"clm"` or `"fallback"`; log it with `r["confidence"]` to watch coverage.
+{% endif %}{% if not python %}
+The call site is not Python, so run the package as a sidecar service and call it over HTTP:
+
+```bash
+{{ dist }}-serve --host 127.0.0.1 --port 8700 --warm
+```
+
+```text
+POST http://127.0.0.1:8700/v1/predict   {"state": "<state text>", "threshold": {{ "%.2f" | format(threshold) }}}
+->  {"label": "...", "probabilities": {...}, "confidence": 0.93, "source": "clm", "low_confidence": true?}
+```
+
+If the response has `"low_confidence": true` (or the request fails or times out), use the existing
+code path. Guard the new branch with the `USE_{{ flag }}` flag (default off).
+{% endif %}
+## Confidence threshold and fallback
+
+`confidence` = top probability minus the mean of the others. Below the threshold the existing path
+answers. Measured on the test split (n={{ report.n_test }}):
+
+| threshold | handled by CLM | accuracy on handled |
+|---|---|---|
+{% for r in table %}| {{ "%.2f" | format(r.threshold) }} | {{ "%.0f" | format(100 * r.coverage) }}% | {{ "%.1f" | format(100 * r.accuracy) }}% |
+{% endfor %}
+Recommended default: **{{ "%.2f" | format(threshold) }}**. Raise it to trade coverage for precision.
+
+## Feature flag
+
+- `USE_{{ flag }}=1` turns the CLM path on (default off). `{{ flag }}_THRESHOLD` overrides the threshold.
+- Optional shadow mode: compute `{{ api }}()` alongside the existing path, log both labels plus
+  confidence, and compare agreement before switching traffic.
+
+## Tests to add
+
+1. **Golden examples** — parametrise over `examples/golden.jsonl` (copy it into the repo's test
+   fixtures). For rows with `clm_confidence >= {{ "%.2f" | format(threshold) }}` assert
+   `{{ api }}(row["state"])["label"] == row["clm_label"]` (pins the packaged model's behaviour); also
+   report agreement with `row["label"]` (gold), expected ≈ {{ "%.0f" | format(100 * ft.accuracy) }}%.
+   These tests load the encoder; mark them slow / integration.
+2. **Fallback** — with `threshold=1.0` and a stub fallback, assert the stub's label is returned and
+   `source == "fallback"`.
+3. **Flag off** — with `USE_{{ flag }}` unset, assert the existing path is called and `{{ pkg }}`
+   is never invoked (mock it).
+4. **Label mapping** — every label ({{ labels | join(", ") }}) maps to a valid value in the existing code.
+
+## Rollout and rollback
+
+1. Merge with the flag off. 2. Shadow mode for a few days; check agreement and the fallback rate.
+3. Enable for a fraction of traffic, then everywhere. **Rollback**: unset `USE_{{ flag }}` — the
+old path is untouched.
+
+## Expected performance
+
+| model | accuracy | macro-F1 | n | note |
+|---|---|---|---|---|
+{% for m in report.models %}| {{ m.name }} | {{ "%.3f" | format(m.accuracy) }} | {{ "%.3f" | format(m.macro_f1) }} | {{ m.n }} | {{ m.note or "" }} |
+{% endfor %}
+Gate ({{ report.metric }} ≥ {{ "%.2f" | format(report.threshold) }}, beats reference and majority): **{{ "passed" if report.gate_passed else "FAILED" }}**.
+Latency on the build machine: embed p50 {{ "%.0f" | format(report.latency.embed_ms_p50) }} ms /
+p95 {{ "%.0f" | format(report.latency.embed_ms_p95) }} ms, head p50 {{ "%.2f" | format(report.latency.head_ms_p50) }} ms.
+{% if opp.risks %}
+## Risks
+
+{% for r in opp.risks %}- {{ r }}
+{% endfor %}{% endif %}
+## Retraining
+
+The model only knows the labels above. Retrain when labels change or accuracy drifts:
+re-open the CLM Forge project for task `{{ task.name }}`, add misclassified production states
+(e.g. from the shadow log) as `user` rows in the dataset, and run training + evaluation again;
+the new package keeps the same import and API. Bump the wheel version in your dependency pin.
+
+## Repository context
+
+{{ repo_summary }}
